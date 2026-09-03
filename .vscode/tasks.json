@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build PROP 2024",
+      "type": "shell",
+      "command": ".\\PROP\\build-dev.bat",
+      "args": ["2024"],
+      "problemMatcher": "$msCompile",
+      "group": "build"
+    },
+    {
+      "label": "build PROP 2026",
+      "type": "shell",
+      "command": ".\\PROP\\build-dev.bat",
+      "args": ["2026"],
+      "problemMatcher": "$msCompile",
+      "group": "build"
+    },
+    {
+      "label": "build PROP all",
+      "type": "shell",
+      "command": ".\\PROP\\build-all.bat",
+      "problemMatcher": "$msCompile",
+      "group": "build"
+    }
+  ]
+}

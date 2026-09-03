@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Navisworks Manage 2024",
+      "type": "clr",
+      "request": "launch",
+      "program": "C:\\Program Files\\Autodesk\\Navisworks Manage 2024\\Roamer.exe",
+      "preLaunchTask": "build PROP 2024"
+    },
+    {
+      "name": "Navisworks Manage 2026",
+      "type": "clr",
+      "request": "launch",
+      "program": "C:\\Program Files\\Autodesk\\Navisworks Manage 2026\\Roamer.exe",
+      "preLaunchTask": "build PROP 2026"
+    }
+  ]
+}

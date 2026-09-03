@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RibbonControl x:Uid="NexusRibbon"
+  xmlns="clr-namespace:Autodesk.Windows;assembly=AdWindows"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="clr-namespace:Autodesk.Navisworks.Gui.Roamer.AIRLook;assembly=navisworks.gui.roamer">
+
+  <RibbonTab Id="ID_PropAba" Title="PROP">
+    <RibbonPanel x:Uid="Painel_PROP">
+      <RibbonPanelSource x:Uid="PainelSource_PROP" Title="PROP">
+        <local:NWRibbonButton x:Uid="PROP.ExportarHierarquia"
+          Id="PROP.ExportarHierarquia"
+          Size="Large"
+          ShowText="True"
+          Text="Exportar Excel"
+          Orientation="Vertical" />
+      </RibbonPanelSource>
+    </RibbonPanel>
+  </RibbonTab>
+</RibbonControl>
