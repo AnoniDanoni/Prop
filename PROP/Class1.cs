@@ -3,7 +3,9 @@ using Autodesk.Navisworks.Api.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
@@ -55,12 +57,9 @@ namespace PROP
                 return;
             }
 
-            string pastaDestino = EscolherPastaDestino(documento);
-            if (string.IsNullOrEmpty(pastaDestino)) return;
-
-            int exportados = 0;
+            var todasPlanilhas = new List<PlanilhaDados>();
+            int rvmsExportados = 0;
             int ignorados = 0;
-            var nomesUsados = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (ModelItem raizPip in raizesPip)
             {
@@ -73,9 +72,8 @@ namespace PROP
                         continue;
                     }
 
-                    string caminho = CriarCaminhoArquivo(pastaDestino, raizPip.DisplayName, nomesUsados);
-                    CriarArquivoExcel(caminho, planilhas);
-                    exportados++;
+                    todasPlanilhas.AddRange(planilhas);
+                    rvmsExportados++;
                 }
                 catch
                 {
@@ -83,13 +81,20 @@ namespace PROP
                 }
             }
 
-            if (exportados > 0)
+            if (todasPlanilhas.Count == 0)
             {
-                try { Process.Start(new ProcessStartInfo(pastaDestino) { UseShellExecute = true }); } catch { }
+                MessageBox.Show(Autodesk.Navisworks.Api.Application.Gui.MainWindow,
+                    "Nenhum RVM possui elementos válidos para exportação.", "PROP");
+                return;
             }
 
+            string caminho = EscolherDestino(documento);
+            if (string.IsNullOrEmpty(caminho)) return;
+            CriarArquivoExcel(caminho, todasPlanilhas);
+            try { Process.Start(new ProcessStartInfo(caminho) { UseShellExecute = true }); } catch { }
+
             MessageBox.Show(Autodesk.Navisworks.Api.Application.Gui.MainWindow,
-                exportados + " arquivo(s) exportado(s). " + ignorados + " ignorado(s).", "PROP");
+                "Arquivo exportado com " + rvmsExportados + " RVM(s). " + ignorados + " ignorado(s).", "PROP");
         }
 
         private static List<ModelItem> EncontrarRaizesPip(Document documento)
@@ -117,13 +122,13 @@ namespace PROP
         private static List<PlanilhaDados> ColetarPlanilhas(ModelItem raizPip)
         {
             var resultado = new List<PlanilhaDados>();
-            foreach (ModelItem nivelIgnorado in raizPip.Children)
-                foreach (ModelItem itemPlanilha in nivelIgnorado.Children)
-                    resultado.Add(ColetarPlanilha(itemPlanilha));
+            foreach (ModelItem site in raizPip.Children)
+                foreach (ModelItem itemPlanilha in site.Children)
+                    resultado.Add(ColetarPlanilha(raizPip.DisplayName, site.DisplayName, itemPlanilha));
             return resultado;
         }
 
-        private static PlanilhaDados ColetarPlanilha(ModelItem itemPlanilha)
+        private static PlanilhaDados ColetarPlanilha(string rvm, string site, ModelItem itemPlanilha)
         {
             var planilha = new PlanilhaDados { Nome = itemPlanilha.DisplayName ?? "Planilha" };
 
@@ -131,14 +136,24 @@ namespace PROP
             {
                 foreach (ModelItem subclasse in classe.Children)
                 {
+                    var linhasSubclasse = new List<LinhaDados>();
+                    bool anteriorCylinder = false;
                     foreach (ModelItem elemento in subclasse.Children)
                     {
                         string nome = elemento.DisplayName ?? "";
+                        bool cylinder = EhCylinder(elemento, nome);
+                        if (cylinder && string.IsNullOrWhiteSpace(nome)) nome = "Cylinder";
+                        if (cylinder && anteriorCylinder) continue;
+                        anteriorCylinder = cylinder;
                         if (Contem(nome, "OBST") || Contem(nome, "INSU")) continue;
 
-                        var linha = new LinhaDados(planilha.Nome, classe.DisplayName, subclasse.DisplayName, nome);
-                        if (LerPropriedadesAveva(elemento, linha)) planilha.Linhas.Add(linha);
+                        var linha = new LinhaDados(rvm, site, planilha.Nome, classe.DisplayName, subclasse.DisplayName, nome);
+                        if (cylinder) linha.Propriedades[0] = "pipe";
+                        if (cylinder || LerPropriedadesAveva(elemento, linha))
+                            linhasSubclasse.Add(linha);
                     }
+                    PreencherCylinders(linhasSubclasse);
+                    planilha.Linhas.AddRange(linhasSubclasse);
                 }
             }
             return planilha;
@@ -147,6 +162,56 @@ namespace PROP
         private static bool Contem(string texto, string trecho)
         {
             return texto.IndexOf(trecho, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool EhCylinder(ModelItem elemento, string displayName)
+        {
+            return displayName.Trim().Equals("Cylinder", StringComparison.OrdinalIgnoreCase) ||
+                (elemento.ClassDisplayName ?? "").Trim().Equals("Cylinder", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void PreencherCylinders(List<LinhaDados> linhas)
+        {
+            for (int i = 0; i < linhas.Count; i++)
+            {
+                if (!linhas[i].Elemento.Equals("Cylinder", StringComparison.OrdinalIgnoreCase)) continue;
+
+                LinhaDados acima = null;
+                LinhaDados abaixo = null;
+                for (int p = i - 1; p >= 0 && acima == null; p--)
+                    if (!linhas[p].Elemento.Equals("Cylinder", StringComparison.OrdinalIgnoreCase)) acima = linhas[p];
+                for (int p = i + 1; p < linhas.Count && abaixo == null; p++)
+                    if (!linhas[p].Elemento.Equals("Cylinder", StringComparison.OrdinalIgnoreCase)) abaixo = linhas[p];
+
+                LinhaDados origem = acima ?? abaixo;
+                if (origem == null) continue;
+                linhas[i].Spec = origem.Spec;
+                linhas[i].Propriedades[5] = origem.Propriedades[5];
+                linhas[i].Propriedades[6] = origem.Propriedades[6];
+                linhas[i].Propriedades[7] = origem.Propriedades[7];
+
+                if (acima != null && abaixo != null &&
+                    TentarLerPosicao(acima.Propriedades[1], out Vector3 p1) &&
+                    TentarLerPosicao(abaixo.Propriedades[1], out Vector3 p2))
+                    linhas[i].Propriedades[1] = Vector3.Distance(p1, p2).ToString("0.###", CultureInfo.InvariantCulture) + "mm";
+            }
+        }
+
+        private static bool TentarLerPosicao(string valor, out Vector3 posicao)
+        {
+            posicao = new Vector3();
+            MatchCollection numeros = Regex.Matches(valor ?? "", @"[-+]?\d+(?:[.,]\d+)?");
+            if (numeros.Count < 3) return false;
+
+            if (!float.TryParse(numeros[0].Value.Replace(',', '.'), NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out float x) ||
+                !float.TryParse(numeros[1].Value.Replace(',', '.'), NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out float y) ||
+                !float.TryParse(numeros[2].Value.Replace(',', '.'), NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out float z)) return false;
+
+            posicao = new Vector3(x, y, z);
+            return true;
         }
 
         private static bool LerPropriedadesAveva(ModelItem elemento, LinhaDados linha)
@@ -214,68 +279,75 @@ namespace PROP
                 RegexOptions.IgnoreCase);
         }
 
-        private static string EscolherPastaDestino(Document documento)
+        private static string EscolherDestino(Document documento)
         {
-            using (var dialogo = new FolderBrowserDialog())
+            using (var dialogo = new SaveFileDialog())
             {
-                dialogo.Description = "Selecione a pasta para salvar os arquivos Excel";
-                dialogo.ShowNewFolderButton = true;
+                dialogo.Title = "Exportar RVMs consolidados";
+                dialogo.Filter = "Pasta de trabalho do Excel (*.xlsx)|*.xlsx";
+                dialogo.DefaultExt = "xlsx";
+                dialogo.AddExtension = true;
+                dialogo.OverwritePrompt = true;
 
                 string arquivoNwd = documento?.FileName;
                 if (!string.IsNullOrEmpty(arquivoNwd) && Directory.Exists(Path.GetDirectoryName(arquivoNwd)))
-                    dialogo.SelectedPath = Path.GetDirectoryName(arquivoNwd);
+                {
+                    dialogo.InitialDirectory = Path.GetDirectoryName(arquivoNwd);
+                    dialogo.FileName = Path.GetFileNameWithoutExtension(arquivoNwd) + "_PIP.xlsx";
+                }
+                else
+                    dialogo.FileName = "PIP.xlsx";
 
                 return dialogo.ShowDialog(Autodesk.Navisworks.Api.Application.Gui.MainWindow) == DialogResult.OK
-                    ? dialogo.SelectedPath : null;
+                    ? dialogo.FileName : null;
             }
-        }
-
-        private static string CriarCaminhoArquivo(string pasta, string nomeRaiz, HashSet<string> nomesUsados)
-        {
-            string nome = Path.GetFileNameWithoutExtension(nomeRaiz ?? "PIP");
-            foreach (char caractere in Path.GetInvalidFileNameChars()) nome = nome.Replace(caractere, '_');
-            nome = nome.Trim();
-            if (string.IsNullOrEmpty(nome)) nome = "PIP";
-
-            string baseNome = nome;
-            for (int numero = 2; !nomesUsados.Add(nome); numero++) nome = baseNome + " (" + numero + ")";
-            return Path.Combine(pasta, nome + ".xlsx");
         }
 
         private static void CriarArquivoExcel(string caminho, List<PlanilhaDados> planilhas)
         {
             Excel.Application excel = null;
+            Excel.Workbooks pastas = null;
             Excel.Workbook pasta = null;
             Excel.Sheets abas = null;
+            bool pastaFechada = false;
+            bool excelEncerrado = false;
 
             try
             {
                 excel = new Excel.Application { DisplayAlerts = false, ScreenUpdating = false };
-                pasta = excel.Workbooks.Add();
+                pastas = excel.Workbooks;
+                pasta = pastas.Add();
                 abas = pasta.Worksheets;
 
                 while (abas.Count > 1)
                 {
                     Excel.Worksheet excedente = (Excel.Worksheet)abas[abas.Count];
-                    excedente.Delete();
-                    Liberar(excedente);
+                    try { excedente.Delete(); }
+                    finally { Liberar(excedente); }
                 }
 
                 Excel.Worksheet aba = (Excel.Worksheet)abas[1];
-                PreencherAba(aba, planilhas, Path.GetFileNameWithoutExtension(caminho));
-                Liberar(aba);
+                try { PreencherAba(aba, planilhas, Path.GetFileNameWithoutExtension(caminho)); }
+                finally { Liberar(aba); }
 
                 pasta.SaveAs(caminho, Excel.XlFileFormat.xlOpenXMLWorkbook);
                 pasta.Close(false);
+                pastaFechada = true;
                 excel.Quit();
+                excelEncerrado = true;
             }
             finally
             {
-                if (pasta != null) { try { pasta.Close(false); } catch { } }
-                if (excel != null) { try { excel.Quit(); } catch { } }
+                if (!pastaFechada && pasta != null) { try { pasta.Close(false); } catch { } }
+                if (!excelEncerrado && excel != null) { try { excel.Quit(); } catch { } }
                 Liberar(abas);
                 Liberar(pasta);
+                Liberar(pastas);
                 Liberar(excel);
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
             }
         }
 
@@ -287,84 +359,110 @@ namespace PROP
                 throw new InvalidOperationException("O arquivo excede o limite de linhas do Excel.");
 
             aba.Name = "Dados";
-            Excel.Range titulo = aba.Range["A1", "P1"];
-            Excel.Range cabecalho = aba.Range["A2", "P2"];
+            Excel.Range titulo = aba.Range["A1", "R1"];
+            Excel.Range cabecalho = aba.Range["A2", "R2"];
             Excel.Range usado = null;
+            Excel.Range colunas = null;
+            Excel.Font fonteTitulo = null;
+            Excel.Font fonteCabecalho = null;
+            Excel.Interior fundoTitulo = null;
+            Excel.Interior fundoCabecalho = null;
+            Excel.Borders bordas = null;
 
             try
             {
                 titulo.Merge();
                 titulo.Value2 = tituloAba;
-                titulo.Font.Bold = true;
-                titulo.Font.Size = 14;
-                titulo.Interior.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.FromArgb(31, 78, 121));
-                titulo.Font.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.White);
+                fonteTitulo = titulo.Font;
+                fundoTitulo = titulo.Interior;
+                fonteTitulo.Bold = true;
+                fonteTitulo.Size = 14;
+                fundoTitulo.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.FromArgb(31, 78, 121));
+                fonteTitulo.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.White);
 
                 cabecalho.Value2 = new object[,] {
-                    { "Tabela", "Classe", "Subclasse", "Elemento", "Type", "Position", "Spref", "Spec",
-                        "Codigo", "APOS", "LPOS", "P1BORE", "P2BORE", "P3BORE", "RTEXT", "Schedule" } };
-                cabecalho.Font.Bold = true;
-                cabecalho.Interior.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.FromArgb(217, 225, 242));
+                    { "RVM", "Site", "Tabela", "Classe", "Subclasse", "Elemento", "Type", "Position",
+                        "Spref", "Spec", "Codigo", "APOS", "LPOS", "P1BORE", "P2BORE", "P3BORE",
+                        "RTEXT", "Schedule" } };
+                fonteCabecalho = cabecalho.Font;
+                fundoCabecalho = cabecalho.Interior;
+                fonteCabecalho.Bold = true;
+                fundoCabecalho.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.FromArgb(217, 225, 242));
 
                 if (totalLinhas > 0)
                 {
-                    var valores = new object[totalLinhas, 16];
+                    var valores = new object[totalLinhas, 18];
                     int i = 0;
                     foreach (PlanilhaDados planilha in planilhas)
                     {
                         foreach (LinhaDados linha in planilha.Linhas)
                         {
-                            valores[i, 0] = linha.Tabela;
-                            valores[i, 1] = linha.Classe;
-                            valores[i, 2] = linha.Subclasse;
-                            valores[i, 3] = linha.Elemento;
-                            valores[i, 4] = linha.Propriedades[0];
-                            valores[i, 5] = linha.Propriedades[1];
-                            valores[i, 6] = linha.Propriedades[2];
-                            valores[i, 7] = linha.Spec;
-                            valores[i, 8] = linha.Codigo;
-                            valores[i, 9] = linha.Propriedades[3];
-                            valores[i, 10] = linha.Propriedades[4];
-                            valores[i, 11] = linha.Propriedades[5];
-                            valores[i, 12] = linha.Propriedades[6];
-                            valores[i, 13] = linha.Propriedades[7];
-                            valores[i, 14] = linha.Propriedades[8];
-                            valores[i, 15] = linha.Schedule;
+                            valores[i, 0] = linha.Rvm;
+                            valores[i, 1] = linha.Site;
+                            valores[i, 2] = linha.Tabela;
+                            valores[i, 3] = linha.Classe;
+                            valores[i, 4] = linha.Subclasse;
+                            valores[i, 5] = linha.Elemento;
+                            valores[i, 6] = linha.Propriedades[0];
+                            valores[i, 7] = linha.Propriedades[1];
+                            valores[i, 8] = linha.Propriedades[2];
+                            valores[i, 9] = linha.Spec;
+                            valores[i, 10] = linha.Codigo;
+                            valores[i, 11] = linha.Propriedades[3];
+                            valores[i, 12] = linha.Propriedades[4];
+                            valores[i, 13] = linha.Propriedades[5];
+                            valores[i, 14] = linha.Propriedades[6];
+                            valores[i, 15] = linha.Propriedades[7];
+                            valores[i, 16] = linha.Propriedades[8];
+                            valores[i, 17] = linha.Schedule;
                             i++;
                         }
                     }
 
-                    Excel.Range corpo = aba.Range["A3", "P" + (totalLinhas + 2)];
-                    corpo.NumberFormat = "@";
-                    corpo.Value2 = valores;
-                    Liberar(corpo);
+                    Excel.Range corpo = aba.Range["A3", "R" + (totalLinhas + 2)];
+                    try
+                    {
+                        corpo.NumberFormat = "@";
+                        corpo.Value2 = valores;
+                    }
+                    finally { Liberar(corpo); }
                 }
 
                 usado = aba.UsedRange;
-                usado.Borders.LineStyle = Excel.XlLineStyle.xlContinuous;
-                usado.Borders.Weight = Excel.XlBorderWeight.xlThin;
+                bordas = usado.Borders;
+                bordas.LineStyle = Excel.XlLineStyle.xlContinuous;
+                bordas.Weight = Excel.XlBorderWeight.xlThin;
                 usado.VerticalAlignment = Excel.XlVAlign.xlVAlignCenter;
                 usado.WrapText = true;
-                usado.EntireColumn.AutoFit();
+                colunas = usado.EntireColumn;
+                colunas.AutoFit();
                 LimitarLargura(aba, "A:A", 45);
-                LimitarLargura(aba, "B:B", 55);
-                LimitarLargura(aba, "C:C", 55);
-                LimitarLargura(aba, "D:D", 80);
-                LimitarLargura(aba, "E:E", 20);
-                LimitarLargura(aba, "F:F", 60);
-                LimitarLargura(aba, "G:G", 60);
-                LimitarLargura(aba, "H:H", 30);
-                LimitarLargura(aba, "I:I", 30);
-                LimitarLargura(aba, "J:J", 60);
-                LimitarLargura(aba, "K:K", 60);
-                LimitarLargura(aba, "L:L", 15);
-                LimitarLargura(aba, "M:M", 15);
+                LimitarLargura(aba, "B:B", 45);
+                LimitarLargura(aba, "C:C", 45);
+                LimitarLargura(aba, "D:D", 55);
+                LimitarLargura(aba, "E:E", 55);
+                LimitarLargura(aba, "F:F", 80);
+                LimitarLargura(aba, "G:G", 20);
+                LimitarLargura(aba, "H:H", 60);
+                LimitarLargura(aba, "I:I", 60);
+                LimitarLargura(aba, "J:J", 30);
+                LimitarLargura(aba, "K:K", 30);
+                LimitarLargura(aba, "L:L", 60);
+                LimitarLargura(aba, "M:M", 60);
                 LimitarLargura(aba, "N:N", 15);
-                LimitarLargura(aba, "O:O", 80);
-                LimitarLargura(aba, "P:P", 20);
+                LimitarLargura(aba, "O:O", 15);
+                LimitarLargura(aba, "P:P", 15);
+                LimitarLargura(aba, "Q:Q", 80);
+                LimitarLargura(aba, "R:R", 20);
             }
             finally
             {
+                Liberar(bordas);
+                Liberar(fundoCabecalho);
+                Liberar(fonteCabecalho);
+                Liberar(fundoTitulo);
+                Liberar(fonteTitulo);
+                Liberar(colunas);
                 Liberar(usado);
                 Liberar(cabecalho);
                 Liberar(titulo);
@@ -374,8 +472,11 @@ namespace PROP
         private static void LimitarLargura(Excel.Worksheet aba, string coluna, double maxima)
         {
             Excel.Range faixa = aba.Range[coluna];
-            if (Convert.ToDouble(faixa.ColumnWidth) > maxima) faixa.ColumnWidth = maxima;
-            Liberar(faixa);
+            try
+            {
+                if (Convert.ToDouble(faixa.ColumnWidth) > maxima) faixa.ColumnWidth = maxima;
+            }
+            finally { Liberar(faixa); }
         }
 
         private static void Liberar(object objeto)
@@ -391,14 +492,18 @@ namespace PROP
 
         private sealed class LinhaDados
         {
-            public LinhaDados(string tabela, string classe, string subclasse, string elemento)
+            public LinhaDados(string rvm, string site, string tabela, string classe, string subclasse, string elemento)
             {
+                Rvm = rvm ?? "";
+                Site = site ?? "";
                 Tabela = tabela ?? "";
                 Classe = classe ?? "";
                 Subclasse = subclasse ?? "";
                 Elemento = elemento ?? "";
             }
 
+            public string Rvm { get; }
+            public string Site { get; }
             public string Tabela { get; }
             public string Classe { get; }
             public string Subclasse { get; }
