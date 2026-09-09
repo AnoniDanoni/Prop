@@ -24,6 +24,8 @@ SQL/SQLite nao foi incluido.
 
 ## Exportacao
 
-O botao `Exportar Excel` procura todas as raizes cujo `DisplayName` termina em `PIP.RVM` e gera um unico arquivo `.xlsx`. Todos os RVMs e suas tabelas ficam em uma unica guia. `RVM`, `Site`, `Tabela`, `Classe` e `Subclasse` sao repetidos em cada linha, seguindo a ordem da arvore. Raizes vazias ou com erro sao ignoradas.
+O botao `Exportar Excel` procura todas as raizes cujo `DisplayName` termina em `PIP.RVM` e gera um unico arquivo `.xlsx`, com as guias `Dados` e `Resumo (Planilhas)`. O resumo usa o template V4 incorporado na DLL (`PROP/Templates/Materiais.xlsx`). `ITEM` recebe `Type`; `Item`, `FLUXOGRAMA` e MTO ficam sem preenchimento nos dados. A ordem da arvore e a formatacao das planilhas sao preservadas. Raizes vazias ou com erro sao ignoradas.
 
-Nao ha celulas de dados mescladas. Elementos com `OBST` ou `INSU` no `DisplayName` sao ignorados. `Cylinder` permanece na ordem da arvore com `Type` igual a `pipe`, copia `Spec` e os Bores do elemento valido mais proximo e recebe em `Position` a distancia em milimetros entre as posicoes validas acima e abaixo na mesma subclasse. Quando consecutivo, apenas o primeiro entra. Os outros elementos so entram quando possuem `RTEXT OF DETREF OF SPREF` na categoria `AVEVA`.
+Nao ha celulas de dados mescladas. Elementos com `OBST` ou `INSU` no `DisplayName` sao ignorados. `Cylinder` permanece na ordem da arvore com `Type` igual a `PIPE`, copia `Spec`, P1BORE e P2BORE do elemento valido acima (ou abaixo, se nao houver anterior), deixa P3BORE vazio e recebe em `Position` a distancia em milimetros entre as posicoes validas acima e abaixo na mesma subclasse. Quando consecutivo, apenas o primeiro entra. Os outros elementos so entram quando possuem `RTEXT OF DETREF OF SPREF` na categoria `AVEVA`.
+
+A coleta usa a thread do Navisworks; a geracao do Excel ocorre em uma thread STA separada, com escrita em blocos de 4096 linhas. Enquanto a exportacao estiver em andamento, novos cliques nao iniciam outra. O destino e escolhido antes da coleta detalhada, evitando esse trabalho quando o usuario cancela.

@@ -130,6 +130,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Templates\Materiais.xlsx">
+      <LogicalName>PROP.Templates.Materiais.xlsx</LogicalName>
+    </EmbeddedResource>
     <None Include="NexusRibbon.xaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
