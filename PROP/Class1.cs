@@ -9,7 +9,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Windows.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Excel = Microsoft.Office.Interop.Excel;
 
@@ -1770,6 +1770,7 @@ namespace PROP
                 { "1-WW-41002", "TRE-736-04100-DI-21-4009" }
             };
         private static bool exportando;
+        private static JanelaProgresso progresso;
         private const int LinhasPorBloco = 4096;
 
         private static Dictionary<string, int> CriarIndicesAveva()
@@ -1815,7 +1816,16 @@ namespace PROP
             exportando = true;
             try
             {
-                if (!Exportar()) exportando = false;
+                using (progresso = new JanelaProgresso())
+                {
+                    progresso.Shown += async (sender, args) =>
+                    {
+                        try { await Exportar(); }
+                        catch (Exception ex) { progresso.Registrar("ERRO: " + ex); }
+                        finally { progresso.Concluir(); }
+                    };
+                    progresso.ShowDialog(Autodesk.Navisworks.Api.Application.Gui.MainWindow);
+                }
                 return 0;
             }
             catch (Exception ex)
@@ -1825,22 +1835,23 @@ namespace PROP
                     "Erro ao exportar: " + ex.Message, "PROP", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return 1;
             }
+            finally { progresso = null; exportando = false; }
         }
 
-        private static bool Exportar()
+        private static async Task Exportar()
         {
+            await Task.Yield();
             Document documento = Autodesk.Navisworks.Api.Application.ActiveDocument;
-            List<ModelItem> raizesPip = EncontrarRaizesPip(documento);
+            string caminho = EscolherDestino(documento);
+            if (string.IsNullOrEmpty(caminho)) { progresso.Registrar("Exportação cancelada."); return; }
+            progresso.Registrar("Procurando raízes PIP.RVM...");
+            List<ModelItem> raizesPip = await EncontrarRaizesPip(documento);
 
             if (raizesPip.Count == 0)
             {
-                MessageBox.Show(Autodesk.Navisworks.Api.Application.Gui.MainWindow,
-                    "Nenhum item com DisplayName terminado em PIP.RVM foi encontrado.", "PROP");
-                return false;
+                progresso.Registrar("Nenhum item com DisplayName terminado em PIP.RVM foi encontrado.");
+                return;
             }
-
-            string caminho = EscolherDestino(documento);
-            if (string.IsNullOrEmpty(caminho)) return false;
 
             var todasPlanilhas = new List<PlanilhaDados>();
             int rvmsExportados = 0;
@@ -1850,66 +1861,62 @@ namespace PROP
             {
                 try
                 {
-                    List<PlanilhaDados> planilhas = ColetarPlanilhas(raizPip);
+                    progresso.Registrar("Coletando RVM " + (rvmsExportados + ignorados + 1) + "/" + raizesPip.Count + ": " + raizPip.DisplayName);
+                    List<PlanilhaDados> planilhas = await ColetarPlanilhas(raizPip);
                     if (planilhas.Count == 0 || !planilhas.Exists(p => p.Linhas.Count > 0))
                     {
                         ignorados++;
+                        progresso.Registrar("AVISO: RVM sem elementos válidos, ignorado.");
                         continue;
                     }
 
                     todasPlanilhas.AddRange(planilhas);
                     rvmsExportados++;
                 }
-                catch
+                catch (Exception ex)
                 {
                     ignorados++;
+                    progresso.Registrar("ERRO no RVM " + raizPip.DisplayName + ": " + ex);
                 }
             }
 
             if (todasPlanilhas.Count == 0)
             {
-                MessageBox.Show(Autodesk.Navisworks.Api.Application.Gui.MainWindow,
-                    "Nenhum RVM possui elementos válidos para exportação.", "PROP");
-                return false;
+                progresso.Registrar("Nenhum RVM possui elementos válidos para exportação.");
+                return;
             }
 
-            var dispatcher = Dispatcher.CurrentDispatcher;
-            IWin32Window janela = Autodesk.Navisworks.Api.Application.Gui.MainWindow;
+            var conclusao = new TaskCompletionSource<bool>();
             var tarefa = new Thread(() =>
             {
-                string mensagem;
-                bool erro = false;
                 try
                 {
                     CriarArquivoExcel(caminho, todasPlanilhas);
-                    try { Process.Start(new ProcessStartInfo(caminho) { UseShellExecute = true }); } catch { }
-                    mensagem = "Arquivo exportado com " + rvmsExportados + " RVM(s). " + ignorados + " ignorado(s).";
+                    conclusao.SetResult(true);
                 }
-                catch (Exception ex) { mensagem = "Erro ao exportar: " + ex.Message; erro = true; }
-                dispatcher.BeginInvoke(new Action(() =>
-                {
-                    try { MessageBox.Show(janela, mensagem, "PROP", MessageBoxButtons.OK,
-                        erro ? MessageBoxIcon.Error : MessageBoxIcon.Information); }
-                    finally { exportando = false; }
-                }));
+                catch (Exception ex) { conclusao.SetException(ex); }
             }) { IsBackground = true, Name = "PROP Excel" };
             tarefa.SetApartmentState(ApartmentState.STA);
             tarefa.Start();
-            return true;
+            await conclusao.Task;
+            progresso.Registrar("Arquivo exportado com " + rvmsExportados + " RVM(s). " + ignorados + " ignorado(s). Destino: " + caminho);
+            try { Process.Start(new ProcessStartInfo(caminho) { UseShellExecute = true }); }
+            catch (Exception ex) { progresso.Registrar("AVISO: arquivo salvo, mas não foi possível abri-lo: " + ex.Message); }
         }
 
-        private static List<ModelItem> EncontrarRaizesPip(Document documento)
+        private static async Task<List<ModelItem>> EncontrarRaizesPip(Document documento)
         {
             var encontrados = new List<ModelItem>();
             if (documento == null) return encontrados;
             foreach (Model modelo in documento.Models)
-                BuscarPips(modelo?.RootItem, encontrados);
+                await BuscarPips(modelo?.RootItem, encontrados);
             return encontrados;
         }
 
-        private static void BuscarPips(ModelItem item, List<ModelItem> encontrados)
+        private static async Task BuscarPips(ModelItem item, List<ModelItem> encontrados)
         {
             if (item == null) return;
+            await progresso.Pulsar("Procurando PIP.RVM");
             if ((item.DisplayName ?? "").EndsWith("PIP.RVM", StringComparison.OrdinalIgnoreCase))
             {
                 encontrados.Add(item);
@@ -1917,10 +1924,10 @@ namespace PROP
             }
 
             foreach (ModelItem filho in item.Children)
-                BuscarPips(filho, encontrados);
+                await BuscarPips(filho, encontrados);
         }
 
-        private static List<PlanilhaDados> ColetarPlanilhas(ModelItem raizPip)
+        private static async Task<List<PlanilhaDados>> ColetarPlanilhas(ModelItem raizPip)
         {
             var resultado = new List<PlanilhaDados>();
             string rvm = raizPip.DisplayName;
@@ -1928,14 +1935,16 @@ namespace PROP
             {
                 string nomeSite = site.DisplayName;
                 foreach (ModelItem itemPlanilha in site.Children)
-                    resultado.Add(ColetarPlanilha(rvm, nomeSite, itemPlanilha));
+                    resultado.Add(await ColetarPlanilha(rvm, nomeSite, itemPlanilha));
             }
             return resultado;
         }
 
-        private static PlanilhaDados ColetarPlanilha(string rvm, string site, ModelItem itemPlanilha)
+        private static async Task<PlanilhaDados> ColetarPlanilha(string rvm, string site, ModelItem itemPlanilha)
         {
             var planilha = new PlanilhaDados { Nome = itemPlanilha.DisplayName ?? "Planilha" };
+            await progresso.Pulsar("Lendo " + planilha.Nome);
+            progresso.Registrar("Lendo " + rvm + " / " + site + " / " + planilha.Nome);
 
             foreach (ModelItem classe in itemPlanilha.Children)
             {
@@ -1943,10 +1952,17 @@ namespace PROP
                 foreach (ModelItem subclasse in classe.Children)
                 {
                     string nomeSubclasse = subclasse.DisplayName;
+                    string etapa = "Coletando " + planilha.Nome + " / " + nomeSubclasse;
+                    await progresso.Pulsar(etapa);
                     var linhasSubclasse = new List<LinhaDados>();
                     bool anteriorCylinder = false;
+                    ModelItem elementoAnterior = null;
                     foreach (ModelItem elemento in subclasse.Children)
                     {
+                        await progresso.Pulsar(etapa);
+                        ModelItem origemCodigo = elementoAnterior ?? subclasse;
+                        string propriedadeCodigo = elementoAnterior == null ? "HSTUBE" : "LSTUBE";
+                        elementoAnterior = elemento;
                         string nome = elemento.DisplayName ?? "";
                         bool cylinder = EhCylinder(elemento, nome);
                         if (cylinder && string.IsNullOrWhiteSpace(nome)) nome = "Cylinder";
@@ -1955,7 +1971,12 @@ namespace PROP
                         if (Contem(nome, "OBST") || Contem(nome, "INSU")) continue;
 
                         var linha = new LinhaDados(rvm, site, planilha.Nome, nomeClasse, nomeSubclasse, nome) { Cylinder = cylinder };
-                        if (cylinder) linha.Propriedades[0] = "PIPE";
+                        if (cylinder)
+                        {
+                            linha.Propriedades[0] = "PIPE";
+                            string codigo = (LerPropriedadeBranch(origemCodigo, propriedadeCodigo) ?? "").Trim();
+                            linha.Codigo = codigo.Substring(codigo.LastIndexOf('/') + 1).Trim();
+                        }
                         if (cylinder || LerPropriedadesAveva(elemento, linha))
                             linhasSubclasse.Add(linha);
                     }
@@ -1993,14 +2014,12 @@ namespace PROP
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { progresso.Registrar("AVISO ao ler " + nome + ": " + ex.Message); }
             return null;
         }
 
         private static void PreencherCylinders(List<LinhaDados> linhas, ModelItem branch)
         {
-            string hstube = (LerPropriedadeBranch(branch, "HSTUBE") ?? "").Trim();
-            string codigo = hstube.Substring(hstube.LastIndexOf('/') + 1).Trim();
             LinhaDados acima = null;
             for (int i = 0; i < linhas.Count;)
             {
@@ -2016,7 +2035,6 @@ namespace PROP
                     distancia = Vector3.Distance(p1, p2).ToString("0.###", CultureInfo.InvariantCulture) + "mm";
                 for (; i < fim; i++)
                 {
-                    linhas[i].Codigo = codigo;
                     linhas[i].Propriedades[7] = "";
                     if (distancia != null) linhas[i].Propriedades[1] = distancia;
                     if (origem == null) continue;
@@ -2065,11 +2083,15 @@ namespace PROP
                             linha.Propriedades[i] = valor;
                             if (i == 8 && !string.IsNullOrWhiteSpace(valor)) encontrouRtext = true;
                         }
-                        catch { linha.Propriedades[i] = ""; }
+                        catch (Exception ex)
+                        {
+                            linha.Propriedades[i] = "";
+                            progresso.Registrar("AVISO em " + linha.Elemento + " / " + PropriedadesAveva[i] + ": " + ex.Message);
+                        }
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { progresso.Registrar("AVISO nas propriedades de " + linha.Elemento + ": " + ex.Message); }
 
             if (!encontrouRtext) return false;
             SepararSpref(linha);
@@ -2121,7 +2143,7 @@ namespace PROP
                 else
                     dialogo.FileName = "PIP.xlsx";
 
-                return dialogo.ShowDialog(Autodesk.Navisworks.Api.Application.Gui.MainWindow) == DialogResult.OK
+                return dialogo.ShowDialog(progresso) == DialogResult.OK
                     ? dialogo.FileName : null;
             }
         }
@@ -2143,7 +2165,9 @@ namespace PROP
 
             try
             {
+                progresso.Registrar("Iniciando Excel...");
                 excel = new Excel.Application { DisplayAlerts = false, ScreenUpdating = false, EnableEvents = false };
+                progresso.Registrar("Abrindo o modelo de planilha...");
                 pastas = excel.Workbooks;
                 using (Stream modelo = typeof(PropRibbonCommandHandler).Assembly.GetManifestResourceStream("PROP.Templates.Materiais.xlsx"))
                 using (FileStream arquivo = File.Create(caminhoModelo))
@@ -2166,12 +2190,26 @@ namespace PROP
                     try { PreencherAba(aba, planilhas, Path.GetFileNameWithoutExtension(caminho)); }
                     finally { Liberar(aba); }
                     PreencherAbaModelo(template, planilhas);
+                    Excel.Worksheet quantitativo = (Excel.Worksheet)abas.Add(Type.Missing, template, Type.Missing, Type.Missing);
+                    try { PreencherQuantitativo(quantitativo, planilhas); }
+                    finally { Liberar(quantitativo); }
                     template.Activate();
+                    Excel.Window janelaExcel = excel.ActiveWindow;
+                    try
+                    {
+                        janelaExcel.FreezePanes = false;
+                        janelaExcel.SplitRow = 0;
+                        janelaExcel.SplitColumn = 0;
+                    }
+                    finally { Liberar(janelaExcel); }
                 }
                 finally { Liberar(template); }
 
+                progresso.Registrar("Calculando subtotais...");
                 excel.Calculation = Excel.XlCalculation.xlCalculationAutomatic;
+                progresso.Registrar("Salvando " + caminho + "...");
                 pasta.SaveAs(caminho, Excel.XlFileFormat.xlOpenXMLWorkbook);
+                progresso.Registrar("Fechando Excel...");
                 pasta.Close(false);
                 pastaFechada = true;
                 excel.Quit();
@@ -2179,6 +2217,7 @@ namespace PROP
             }
             finally
             {
+                progresso.Registrar("Liberando recursos do Excel...");
                 if (!pastaFechada && pasta != null) { try { pasta.Close(false); } catch { } }
                 if (!excelEncerrado && excel != null) { try { excel.Quit(); } catch { } }
                 Liberar(abas);
@@ -2189,6 +2228,82 @@ namespace PROP
             }
         }
 
+        private static List<object[]> ColetarQuantitativo(List<PlanilhaDados> planilhas)
+        {
+            var indice = new Dictionary<Tuple<int, string, string, string, string, string, string>, object[]>();
+            var resultado = new List<object[]>();
+            string[] niveis = { "GERAL", "RVM", "SITE", "ZONE", "PIPE", "BRANCH" };
+            foreach (PlanilhaDados planilha in planilhas)
+                foreach (LinhaDados linha in planilha.Linhas)
+                {
+                    string tipo = linha.Cylinder ? "PIPE" : (linha.Propriedades[0] ?? "").Trim().ToUpperInvariant();
+                    if (tipo.Length == 0) tipo = "SEM TIPO";
+                    for (int nivel = 0; nivel < niveis.Length; nivel++)
+                    {
+                        var chave = Tuple.Create(nivel, nivel >= 1 ? linha.Rvm : "", nivel >= 2 ? linha.Site : "",
+                            nivel >= 3 ? linha.Tabela : "", nivel >= 4 ? linha.Classe : "",
+                            nivel >= 5 ? linha.Subclasse : "", tipo);
+                        if (!indice.TryGetValue(chave, out object[] total))
+                        {
+                            if (resultado.Count >= 1048573)
+                                throw new InvalidOperationException("O quantitativo excede o limite de linhas do Excel.");
+                            total = new object[] { niveis[nivel], chave.Item2, chave.Item3, chave.Item4,
+                                chave.Item5, chave.Item6, tipo, 0 };
+                            indice.Add(chave, total);
+                            resultado.Add(total);
+                        }
+                        total[7] = (int)total[7] + 1;
+                    }
+                }
+            return resultado;
+        }
+
+        private static void PreencherQuantitativo(Excel.Worksheet aba, List<PlanilhaDados> planilhas)
+        {
+            progresso.Registrar("Agrupando quantitativo por hierarquia e tipo...");
+            List<object[]> linhas = ColetarQuantitativo(planilhas);
+            aba.Name = "Quantitativo";
+            Excel.Range aviso = aba.Range["A1", "H1"];
+            try
+            {
+                aviso.Merge();
+                aviso.Value2 = "Contagem de elementos por tipo. Filtre um único Nível para não somar os mesmos elementos novamente.";
+                aviso.WrapText = true;
+                aviso.RowHeight = 32;
+            }
+            finally { Liberar(aviso); }
+            Excel.Range cabecalho = aba.Range["A3", "H3"];
+            try { cabecalho.Value2 = new object[,] { { "Nível", "RVM", "SITE", "ZONE", "PIPE", "BRANCH", "Tipo", "Quantidade" } }; }
+            finally { Liberar(cabecalho); }
+            for (int inicio = 0; inicio < linhas.Count; inicio += LinhasPorBloco)
+            {
+                int quantidade = Math.Min(LinhasPorBloco, linhas.Count - inicio);
+                var valores = new object[quantidade, 8];
+                for (int i = 0; i < quantidade; i++)
+                    for (int coluna = 0; coluna < 8; coluna++) valores[i, coluna] = linhas[inicio + i][coluna];
+                Excel.Range texto = aba.Range["A" + (inicio + 4), "G" + (inicio + quantidade + 3)];
+                Excel.Range bloco = aba.Range["A" + (inicio + 4), "H" + (inicio + quantidade + 3)];
+                try { texto.NumberFormat = "@"; bloco.Value2 = valores; }
+                finally { Liberar(bloco); Liberar(texto); }
+                progresso.Registrar("Quantitativo: " + (inicio + quantidade) + "/" + linhas.Count + " linhas gravadas.");
+            }
+            Excel.Range faixa = aba.Range["A3", "H" + Math.Max(4, linhas.Count + 3)];
+            Excel.ListObjects tabelas = aba.ListObjects;
+            Excel.ListObject tabela = null;
+            Excel.Range colunas = aba.Range["A:H"];
+            Excel.Range quantidades = aba.Range["H4", "H" + Math.Max(4, linhas.Count + 3)];
+            try
+            {
+                tabela = tabelas.Add(Excel.XlListObjectSourceType.xlSrcRange, faixa, Type.Missing, Excel.XlYesNoGuess.xlYes);
+                tabela.Name = "QuantitativoPorTipo";
+                tabela.TableStyle = "TableStyleMedium2";
+                colunas.ColumnWidth = 24;
+                quantidades.NumberFormat = "0";
+                faixa.AutoFilter(1, "PIPE");
+            }
+            finally { Liberar(quantidades); Liberar(colunas); Liberar(tabela); Liberar(tabelas); Liberar(faixa); }
+        }
+
         private static void PreencherAba(Excel.Worksheet aba, List<PlanilhaDados> planilhas, string tituloAba)
         {
             int totalLinhas = 0;
@@ -2197,8 +2312,8 @@ namespace PROP
                 throw new InvalidOperationException("O arquivo excede o limite de linhas do Excel.");
 
             aba.Name = "Dados";
-            Excel.Range titulo = aba.Range["A1", "R1"];
-            Excel.Range cabecalho = aba.Range["A2", "R2"];
+            Excel.Range titulo = aba.Range["A1", "S1"];
+            Excel.Range cabecalho = aba.Range["A2", "S2"];
             Excel.Range usado = null;
             Excel.Range colunas = null;
             Excel.Font fonteTitulo = null;
@@ -2221,7 +2336,7 @@ namespace PROP
                 cabecalho.Value2 = new object[,] {
                     { "RVM", "SITE", "ZONE", "PIPE", "BRANCH", "Elemento", "Type", "Position",
                         "Spref", "Spec", "Codigo", "APOS", "LPOS", "P1BORE", "P2BORE", "P3BORE",
-                        "RTEXT", "Schedule" } };
+                        "RTEXT", "Schedule", "FLUXOGRAMA" } };
                 fonteCabecalho = cabecalho.Font;
                 fundoCabecalho = cabecalho.Interior;
                 fonteCabecalho.Bold = true;
@@ -2229,6 +2344,7 @@ namespace PROP
 
                 PreencherCorpo(aba, planilhas, totalLinhas, false);
 
+                progresso.Registrar("Formatando a guia Dados...");
                 usado = aba.UsedRange;
                 bordas = usado.Borders;
                 bordas.LineStyle = Excel.XlLineStyle.xlContinuous;
@@ -2255,6 +2371,7 @@ namespace PROP
                 LimitarLargura(aba, "P:P", 15);
                 LimitarLargura(aba, "Q:Q", 80);
                 LimitarLargura(aba, "R:R", 20);
+                LimitarLargura(aba, "S:S", 45);
             }
             finally
             {
@@ -2282,6 +2399,7 @@ namespace PROP
             Excel.Range cabecalhoDiametro3 = aba.Range["N5"];
             try
             {
+                progresso.Registrar("Preparando a guia Resumo (Planilhas)...");
                 cabecalhoDiametro3.Value2 = "Diâmetro 3";
                 if (ultimaLinha > 747)
                 {
@@ -2302,21 +2420,51 @@ namespace PROP
                 filtro.AutoFilter(1);
                 AtualizarSubtotais(aba, ultimaLinha);
                 PreencherCorpo(aba, planilhas, totalLinhas, true);
+                Excel.Interior fundo = filtro.Interior;
+                Excel.Font fonte = null;
+                try
+                {
+                    fonte = filtro.Font;
+                    fundo.Pattern = Excel.XlPattern.xlPatternSolid;
+                    fundo.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.White);
+                    fonte.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.Black);
+                }
+                finally { Liberar(fonte); Liberar(fundo); }
+                Excel.Range cabecalho = aba.Range["A4", "AQ5"];
+                Excel.Range linhasIniciais = aba.Range["1:2"];
+                Excel.Interior fundoCabecalho = null;
+                try
+                {
+                    fundoCabecalho = cabecalho.Interior;
+                    fundoCabecalho.Pattern = Excel.XlPattern.xlPatternSolid;
+                    fundoCabecalho.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.FromArgb(217, 225, 242));
+                    linhasIniciais.RowHeight = 36;
+                }
+                finally { Liberar(fundoCabecalho); Liberar(linhasIniciais); Liberar(cabecalho); }
             }
             finally { Liberar(cabecalhoDiametro3); Liberar(filtro); }
+        }
+
+        private static string ObterNumeroLinha(string branch)
+        {
+            string numero = branch.Trim().TrimStart('/');
+            int sufixo = numero.LastIndexOf('/');
+            return sufixo >= 0 && sufixo > numero.LastIndexOf('"') ? numero.Substring(0, sufixo).TrimEnd() : numero;
         }
 
         private static void PreencherCorpo(Excel.Worksheet aba, List<PlanilhaDados> planilhas, int totalLinhas, bool modelo)
         {
             if (totalLinhas == 0) return;
             int exportadas = 0, i = 0;
-            var valores = new object[Math.Min(LinhasPorBloco, totalLinhas), modelo ? 42 : 18];
+            int inicioMto = 0, fimMto = 0;
+            progresso.Registrar("Escrevendo " + (modelo ? "Resumo" : "Dados") + ": " + totalLinhas + " linhas...");
+            var valores = new object[Math.Min(LinhasPorBloco, totalLinhas), modelo ? 42 : 19];
             foreach (PlanilhaDados planilha in planilhas)
                 foreach (LinhaDados linha in planilha.Linhas)
                 {
                     if (modelo)
                     {
-                        string numeroLinha = linha.Subclasse.Trim().TrimStart('/');
+                        string numeroLinha = ObterNumeroLinha(linha.Subclasse);
                         valores[i, 3] = linha.Codigo;
                         valores[i, 4] = linha.Propriedades[0];
                         valores[i, 5] = linha.Propriedades[8];
@@ -2328,13 +2476,23 @@ namespace PROP
                         valores[i, 13] = numeroLinha;
                         valores[i, 14] = linha.Spec;
                         valores[i, 15] = linha.Schedule;
+                        if (linha.Cylinder && CatalogoMateriais.TentarObter(linha.Codigo, out MaterialCatalogo material))
+                        {
+                            valores[i, 5] = material.Descricao;
+                            valores[i, 6] = material.Material;
+                            valores[i, 15] = material.Schedule;
+                        }
                         valores[i, 18] = ObterMto(linha);
                         valores[i, 20] = ObterFluxograma(numeroLinha);
                         if (linha.Cylinder)
                         {
-                            Excel.Range mto = aba.Range["T" + (exportadas + i + 7)];
-                            try { mto.NumberFormat = "0.000"; }
-                            finally { Liberar(mto); }
+                            fimMto = exportadas + i + 7;
+                            if (inicioMto == 0) inicioMto = fimMto;
+                        }
+                        else if (inicioMto > 0)
+                        {
+                            FormatarMto(aba, inicioMto, fimMto);
+                            inicioMto = 0;
                         }
                     }
                     else
@@ -2356,12 +2514,15 @@ namespace PROP
                         valores[i, 14] = linha.Propriedades[6];
                         valores[i, 15] = linha.Cylinder ? "" : linha.Propriedades[7];
                         valores[i, 16] = linha.Propriedades[8];
+                        if (linha.Cylinder && CatalogoMateriais.TentarObter(linha.Codigo, out MaterialCatalogo material))
+                            valores[i, 16] = material.Descricao;
                         valores[i, 17] = linha.Schedule;
+                        valores[i, 18] = ObterFluxograma(linha.Subclasse);
                     }
                     if (++i < valores.GetLength(0)) continue;
                     int inicio = exportadas + (modelo ? 7 : 3);
                     Excel.Range corpo = aba.Range[(modelo ? "B" : "A") + inicio,
-                        (modelo ? "AQ" : "R") + (inicio + i - 1)];
+                        (modelo ? "AQ" : "S") + (inicio + i - 1)];
                     try
                     {
                         if (!modelo) corpo.NumberFormat = "@";
@@ -2369,10 +2530,19 @@ namespace PROP
                     }
                     finally { Liberar(corpo); }
                     exportadas += i;
+                    progresso.Registrar((modelo ? "Resumo" : "Dados") + ": " + exportadas + "/" + totalLinhas + " linhas gravadas.");
                     i = 0;
                     if (exportadas < totalLinhas)
-                        valores = new object[Math.Min(LinhasPorBloco, totalLinhas - exportadas), modelo ? 42 : 18];
+                        valores = new object[Math.Min(LinhasPorBloco, totalLinhas - exportadas), modelo ? 42 : 19];
                 }
+            if (inicioMto > 0) FormatarMto(aba, inicioMto, fimMto);
+        }
+
+        private static void FormatarMto(Excel.Worksheet aba, int inicio, int fim)
+        {
+            Excel.Range faixa = aba.Range["T" + inicio, "T" + fim];
+            try { faixa.NumberFormat = "0.000"; }
+            finally { Liberar(faixa); }
         }
 
         private static void AtualizarSubtotais(Excel.Worksheet aba, int ultimaLinha)
@@ -2399,6 +2569,78 @@ namespace PROP
         private static void Liberar(object objeto)
         {
             if (objeto != null && Marshal.IsComObject(objeto)) Marshal.FinalReleaseComObject(objeto);
+        }
+
+        private sealed class JanelaProgresso : Form
+        {
+            private readonly Label atual = new Label { Dock = DockStyle.Top, Height = 52, Text = "Iniciando exportação..." };
+            private readonly TextBox log = new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical };
+            private readonly ProgressBar barra = new ProgressBar { Dock = DockStyle.Top, Height = 18, Style = ProgressBarStyle.Marquee };
+            private readonly Button fechar = new Button { Dock = DockStyle.Bottom, Text = "Fechar", Enabled = false };
+            private readonly Stopwatch intervalo = Stopwatch.StartNew();
+            private readonly Stopwatch duracao = Stopwatch.StartNew();
+            private readonly System.Windows.Forms.Timer relogio = new System.Windows.Forms.Timer { Interval = 1000 };
+            private readonly StreamWriter arquivoLog;
+            private long processados;
+
+            public JanelaProgresso()
+            {
+                Text = "PROP — Exportação";
+                ClientSize = new System.Drawing.Size(620, 300);
+                Padding = new Padding(10);
+                StartPosition = FormStartPosition.CenterParent;
+                MinimizeBox = false;
+                MaximizeBox = false;
+                Controls.Add(log);
+                Controls.Add(barra);
+                Controls.Add(atual);
+                Controls.Add(fechar);
+                fechar.Click += (sender, args) => Close();
+                FormClosing += (sender, args) => args.Cancel = !fechar.Enabled;
+                relogio.Tick += (sender, args) => Text = "PROP — Exportação — " + duracao.Elapsed.ToString(@"hh\:mm\:ss");
+                relogio.Start();
+                try
+                {
+                    string caminho = Path.Combine(Path.GetTempPath(), "PROP_" + Guid.NewGuid().ToString("N") + ".log");
+                    arquivoLog = new StreamWriter(caminho) { AutoFlush = true };
+                    Registrar("Log completo: " + caminho);
+                }
+                catch (Exception ex) { Registrar("AVISO: log disponível apenas nesta janela: " + ex.Message); }
+            }
+
+            public void Registrar(string mensagem)
+            {
+                if (InvokeRequired) { BeginInvoke(new Action<string>(Registrar), mensagem); return; }
+                string entrada = DateTime.Now.ToString("HH:mm:ss") + " — " + mensagem + Environment.NewLine;
+                atual.Text = mensagem.Split(new[] { '\r', '\n' }, 2)[0];
+                if (log.TextLength > 40000) log.Clear();
+                log.AppendText(entrada);
+                try { arquivoLog?.Write(entrada); }
+                catch (IOException) { }
+            }
+
+            public async Task Pulsar(string etapa)
+            {
+                processados++;
+                if (intervalo.ElapsedMilliseconds < 100) return;
+                atual.Text = etapa + " — " + processados + " itens visitados";
+                intervalo.Restart();
+                await Task.Delay(1);
+            }
+
+            public void Concluir()
+            {
+                relogio.Stop();
+                barra.Style = ProgressBarStyle.Blocks;
+                fechar.Enabled = true;
+                fechar.Focus();
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing) { relogio.Dispose(); arquivoLog?.Dispose(); }
+                base.Dispose(disposing);
+            }
         }
 
         private sealed class PlanilhaDados

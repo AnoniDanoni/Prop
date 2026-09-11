@@ -126,10 +126,14 @@
 
   <ItemGroup>
     <Compile Include="Class1.cs" />
+    <Compile Include="CatalogoMateriais.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Dados\Materiais.tsv">
+      <LogicalName>PROP.Dados.Materiais.tsv</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="Templates\Materiais.xlsx">
       <LogicalName>PROP.Templates.Materiais.xlsx</LogicalName>
     </EmbeddedResource>
