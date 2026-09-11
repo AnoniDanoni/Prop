@@ -27,6 +27,33 @@ namespace PROP
     {
         private static readonly Lazy<ReadOnlyDictionary<string, MaterialCatalogo>> dados =
             new Lazy<ReadOnlyDictionary<string, MaterialCatalogo>>(Carregar);
+        private static readonly Lazy<Dictionary<string, string>> materiaisPorDescricao =
+            new Lazy<Dictionary<string, string>>(CarregarMateriaisPorDescricao);
+
+        public static bool TentarObterMaterial(string descricao, out string material)
+        {
+            return materiaisPorDescricao.Value.TryGetValue((descricao ?? "").Trim(), out material);
+        }
+
+        private static Dictionary<string, string> CarregarMateriaisPorDescricao()
+        {
+            var registros = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            using (Stream recurso = typeof(CatalogoMateriais).Assembly.GetManifestResourceStream("PROP.Dados.DescricaoMaterial.tsv")
+                ?? throw new InvalidDataException("Lista de materiais por descrição não encontrada na DLL."))
+            using (var leitor = new StreamReader(recurso, new UTF8Encoding(false, true)))
+            {
+                string linha;
+                while ((linha = leitor.ReadLine()) != null)
+                {
+                    if (string.IsNullOrWhiteSpace(linha)) continue;
+                    string[] colunas = linha.Split('\t');
+                    if (colunas.Length != 2 || string.IsNullOrWhiteSpace(colunas[0]) || string.IsNullOrWhiteSpace(colunas[1]))
+                        throw new InvalidDataException("Registro inválido na lista de materiais por descrição.");
+                    registros.Add(colunas[0].Trim(), colunas[1].Trim());
+                }
+            }
+            return registros;
+        }
 
         public static bool TentarObter(string codigo, out MaterialCatalogo material)
         {

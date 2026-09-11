@@ -131,6 +131,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Dados\DescricaoMaterial.tsv">
+      <LogicalName>PROP.Dados.DescricaoMaterial.tsv</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="Dados\Materiais.tsv">
       <LogicalName>PROP.Dados.Materiais.tsv</LogicalName>
     </EmbeddedResource>
