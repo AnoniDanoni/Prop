@@ -26,313 +26,6 @@ namespace PROP
                 "RTEXT OF DETREF OF SPREF" };
 
         private static readonly Dictionary<string, int> IndicesAveva = CriarIndicesAveva();
-        private static readonly Dictionary<string, string> MateriaisPorDescricao =
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                { "Plug V. Flanged A216-WCB Post Weld Heat Treatment - - 300 RF PLUG Monel/Soft Sleeve", "AC" },
-                { "TUBO; AC; API 5L GR B PSL1; C/C; PC; POLIET; B36.10", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.5 600LB Sch 80", "AC" },
-                { "TUBO METÁLICO; AC; A106 GR B; S/C; PC; B36.10", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 80 x Sch 80", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC S/C B16.9 Sch 80", "AC" },
-                { "VALVULA DE RETENCAO AC A216 GR WCB PORTINHOLA NORMAL PC BS 1868 600LB Sch 80", "AC" },
-                { "VALVULA GAVETA AC A216 GR WCB PC ISO 10434 ENGR 600LB Sch 80", "AC" },
-                { "FLANGE DE PESCOCO AI A182 GR F304 FR PC B16.5 300LB Sch 40S", "AI" },
-                { "REDUCAO CONCENTRICA AI A403 GR WP304 S/C PC B16.9 Sch 40S x Sch 40S", "AI" },
-                { "TUBO; AI; A312 GR TP304; C/C; PC; B36.19", "AI" },
-                { "CURVA 90 AI A403 GR WP304 PC S/C B16.9 Sch 40S", "AI" },
-                { "VALVULA DE RETENCAO AI A351 GR CF8M PORTINHOLA NORMAL FLG FR B16.34 / MSS SP-134 300LB", "AI" },
-                { "VALVULA GAVETA AI A351 GR CF8M FLG FR ISO 10434 VOL. 300LB", "AI" },
-                { "TE RETO ST AI A403 GR WP304 PC S/C B16.9 Sch 40S", "AI" },
-                { "REDUCAO EXCENTRICA AI A403 GR WP304 S/C PC B16.9 Sch 40S x Sch 40S", "AI" },
-                { "FLANGE DE PESCOCO AC A350 LF2 CL 1 FR PC B16.5 150LB Sch 40", "AL" },
-                { "CURVA 90 AC A420 GR WPL6 PC S/C B16.9 Sch 40", "AC" },
-                { "TUBO METÁLICO; AC; A333 GR 6; S/C; PL; B36.10", "AL" },
-                { "FLANGE DE PESCOCO AC A350 LF2 CL 1 FR PC B16.5 300LB Sch 80", "AL" },
-                { "VALVULA GLOBO AC A352 GR LCB BS 1873 FLG FR VOL. 300LB", "AL" },
-                { "CURVA 90 AC A420 GR WPL6 PC S/C B16.9 Sch 80", "AC" },
-                { "VALVULA GAVETA AC A352 GR LCB FLG FR ISO 10434 VOL. 300LB", "AL" },
-                { "VALVULA GAVETA AC A216 GR WCB PC ISO 10434 VOL. 600LB Sch 80", "AC" },
-                { "TE DE REDUCAO ST AC A234 GR WPB S/C PC B16.9 Sch 80 x Sch 80", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC S/C B16.9 Sch 40", "AC" },
-                { "FLANGE DE PESCOCO AC A105-N NORMAL. FR PC B16.5 300LB Sch 40", "AC" },
-                { "CURVA 45 AC A234 GR WPB PC S/C B16.9 Sch 40", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 40 x Sch 40", "AC" },
-                { "VALVULA GAVETA AC A216 GR WCB FLG FR ISO 10434 ENGR 300LB", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC S/C B16.9 Sch 40", "AC" },
-                { "VALVULA DE RETENCAO AC A216 GR WCB PORTINHOLA NORMAL FLG FR BS 1868 300LB", "AC" },
-                { "TUBO METÁLICO; AC; A333 GR 6; S/C; PC; B36.10", "AL" },
-                { "VALVULA DE RETENCAO AC A352 GR LCB PORTINHOLA NORMAL FLG FR BS 1868 150LB", "AL" },
-                { "FLANGE DE PESCOCO AC A105-N NORMAL. FR PC B16.5 150LB Sch 40", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 40 x Sch 40", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.5 150LB Sch 40", "AC" },
-                { "VALVULA GAVETA AC A216 GR WCB FLG FR ISO 10434 VOL. 150LB", "AC" },
-                { "VALVULA DE RETENCAO AC A216 GR WCB PORTINHOLA NORMAL FLG FR BS 1868 150LB", "AC" },
-                { "TUBO METÁLICO; AC; A106 GR B; S/C; PL; B36.10", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.5 150LB Sch 80", "AC" },
-                { "FLANGE CEGO AC A105 FR B16.5 150LB", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC S/C B16.9 Sch 20", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.5 150LB Sch 20", "AC" },
-                { "FLANGE DE PESCOCO AC A350 LF2 CL 1 FR PC B16.5 300LB Sch 40", "AL" },
-                { "FLANGE DE PESCOCO AC A350 LF2 CL 1 FR PC B16.5 300LB Sch 30", "AL" },
-                { "REDUCAO EXCENTRICA AC A420 GR WPL6 S/C PC B16.9 Sch 30 x Sch 30", "AC" },
-                { "CURVA 90 AC A420 GR WPL6 PC S/C B16.9 Sch 30", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 30 x Sch 40", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC C/C B16.9 Sch 30", "AC" },
-                { "TUBO; AC; API 5L GR B PSL1; C/C; PC; B36.10", "AC" },
-                { "TE DE REDUCAO ST AC A234 GR WPB C/C PC B16.9 Sch 30 x STD", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.5 150LB Sch 30", "AC" },
-                { "VALVULA GAVETA AC A216 GR WCB FLG FR ISO 10434 ENGR 150LB", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 30 x Sch 40", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC S/C B16.9 Sch 30", "AC" },
-                { "FLANGE DE PESCOCO AC A105-N NORMAL. FR PC B16.5 300LB Sch 30", "AC" },
-                { "FLANGE DE PESCOCO AC A105-N NORMAL. FR PC B16.5 300LB XS", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 XS x Sch 30", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC C/C B16.9 Sch 10", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 10 x Sch 10", "AC" },
-                { "FLANGE DE PESCOCO AC A105-N NORMAL. FR PC B16.5 150LB Sch 10", "AC" },
-                { "CURVA 45 AC A420 GR WPL6 PC S/C B16.9 Sch 40", "AC" },
-                { "VALVULA GAVETA AC A352 GR LCB FLG FR ISO 10434 VOL. 150LB", "AL" },
-                { "REDUCAO EXCENTRICA AC A420 GR WPL6 S/C PC B16.9 Sch 20 x Sch 40", "AC" },
-                { "FLANGE DE PESCOCO AC A350 LF2 CL 1 FR PC B16.5 150LB Sch 20", "AL" },
-                { "VALVULA GAVETA AC A352 GR LCB FLG FR ISO 10434 ENGR 150LB", "AL" },
-                { "REDUCAO CONCENTRICA AC A420 GR WPL6 S/C PC B16.9 Sch 20 x Sch 40", "AC" },
-                { "VALVULA GLOBO AC A352 GR LCB BS 1873 FLG FR VOL. 150LB", "AL" },
-                { "CURVA 45 AC A420 GR WPL6 PC S/C B16.9 Sch 20", "AC" },
-                { "CURVA 90 AC A420 GR WPL6 PC S/C B16.9 Sch 20", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC C/C B16.9 Sch 40", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.5 300LB Sch 40", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC C/C B16.9 Sch 40", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB S/C PC B16.9 STD x Sch 40", "AC" },
-                { "FLANGE DE PESCOCO AC A105-N NORMAL. FR PC B16.5 300LB STD", "AC" },
-                { "REDUCAO CONCENTRICA AC A420 GR WPL6 S/C PC B16.9 Sch 20 x Sch 20", "AC" },
-                { "TAMPAO ST AC A234 GR WPB PC B16.9 S/C Sch 40", "AC" },
-                { "CURVA 45 AI A403 GR WP304 PC S/C B16.9 Sch 40S", "AI" },
-                { "VALVULA GLOBO AI A351 GR CF8M B16.34 / MSS SP-134 FLG FR ENGR 300LB", "AI" },
-                { "VALVULA GAVETA AI A351 GR CF8M FLG FR ISO 10434 ENGR 300LB", "AI" },
-                { "VALVULA GAVETA AI A351 GR CF8M FLG FR API 600 / MSS SP-134 ENGR 300LB", "AI" },
-                { "TUBO; AI; A358 GR 304 CL 2; C/C; PC; B36.19", "AI" },
-                { "VALVULA GAVETA AI A351 GR CF8M FLG FR API 600 ENGR 300LB", "AI" },
-                { "FLANGE DE PESCOCO AL A182 GR F22 FR PC B16.5 2500LB 1.688\"", "AI" },
-                { "CURVA 90 AC A234 GR WPB PC C/C B16.9 Sch 20", "AC" },
-                { "CURVA 45 AC A234 GR WPB PC C/C B16.9 Sch 20", "AC" },
-                { "FLANGE SOBREPOSTO AC A105 FP B16.5 150LB", "AC" },
-                { "FLANGE DE PESCOCO AC A350 LF2 CL 1 FR PC B16.5 300LB XS", "AL" },
-                { "CURVA 90 AC A420 GR WPL6 PC S/C B16.9 XS", "AC" },
-                { "TE RETO ST AC A420 GR WPL6 PC S/C B16.9 XS", "AC" },
-                { "FLANGE CEGO AC A350 LF2 CL 1 FR B16.5 300LB", "AL" },
-                { "REDUCAO CONCENTRICA AC A420 GR WPL6 S/C PC B16.9 Sch 40 x Sch 40", "AC" },
-                { "REDUCAO EXCENTRICA AC A420 GR WPL6 S/C PC B16.9 Sch 20 x Sch 20", "AC" },
-                { "CURVA 45 AC A420 GR WPL6 PC S/C B16.9 XS", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 XS x Sch 40", "AC" },
-                { "REDUCAO EXCENTRICA AC A420 GR WPL6 S/C PC B16.9 XS x Sch 40", "AC" },
-                { "REDUCAO EXCENTRICA AC A420 GR WPL6 S/C PC B16.9 A CALCULAR x XS", "AC" },
-                { "REDUCAO EXCENTRICA AC A420 GR WPL6 C/C PC B16.9 A CALCULAR x A CALCULAR", "AC" },
-                { "FLANGE DE PESCOCO AC A350 LF2 CL 1 FR PC B16.47 A 300LB A CALCULAR", "AL" },
-                { "TUBO; AC; A671 GR CC 60 CL 32; C/C; PC; B36.10", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC C/C B16.9 STD", "AC" },
-                { "FLANGE DE PESCOCO AC A350 LF2 CL 1 FR PC B16.47 A 150LB A CALCULAR", "AL" },
-                { "FLANGE CEGO AC A350 LF2 CL 1 FR B16.5 150LB", "AL" },
-                { "REDUCAO EXCENTRICA AC A420 GR WPL6 S/C PC B16.9 Sch 40 x Sch 40", "AC" },
-                { "CURVA 45 AC A234 GR WPB PC C/C B16.9 STD", "AC" },
-                { "VALVULA BORBOLETA FN A536 GR 65-45-12 API 609A ENGR WAF BUNA-N 150LB", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.47 A 150LB STD", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FP PC B16.47 A 150LB STD", "AC" },
-                { "VALVULA DE RETENCAO AC A216 GR WCB PORTINHOLA NORMAL WAF FP API 594 150LB", "AC" },
-                { "FLANGE CEGO AC A350 LF2 FR B16.47 A 150LB", "AL" },
-                { "REDUCAO CONCENTRICA AC A420 GR WPL6 S/C PC B16.9 XS x Sch 40", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC C/C B16.9 XS", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 40 x Sch 40", "AC" },
-                { "CURVA 45 AC A234 GR WPB PC C/C B16.9 Sch 40", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB C/C PC B16.9 XS x Sch 40", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FP PC B16.5 150LB Sch 40", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 30 x STD", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC S/C B16.9 STD", "AC" },
-                { "CURVA 45 AC A234 GR WPB PC S/C B16.9 STD", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 30 x STD", "AC" },
-                { "CURVA 90 AC A420 GR WPL6 PC S/C B16.9 STD", "AC" },
-                { "CURVA 45 AC A420 GR WPL6 PC S/C B16.9 STD", "AC" },
-                { "FLANGE DE PESCOCO AC A350 LF2 CL 1 FR PC B16.5 300LB STD", "AL" },
-                { "VALVULA GAVETA AC A352 GR LCB FLG FR ISO 10434 ENGR 300LB", "AL" },
-                { "REDUCAO EXCENTRICA AC A420 GR WPL6 S/C PC B16.9 STD x Sch 40", "AC" },
-                { "CURVA 45 AC A420 GR WPL6 PC S/C B16.9 Sch 30", "AC" },
-                { "REDUCAO EXCENTRICA AC A420 GR WPL6 S/C PC B16.9 Sch 30 x STD", "AC" },
-                { "REDUCAO EXCENTRICA AC A420 GR WPL6 S/C PC B16.9 XS x STD", "AC" },
-                { "CURVA 45 AC A234 GR WPB PC C/C B16.9 A CALCULAR", "AC" },
-                { "FLANGE CEGO AC A105 FP B16.5 150LB", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 10 x Sch 40", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 A CALCULAR x Sch 40", "AC" },
-                { "TUBO; AC; A672 GR B60 CL 22; C/C; PC; B36.10", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC C/C B16.9 A CALCULAR", "AC" },
-                { "FLANGE DE PESCOCO AC A105-N NORMAL. FR PC B16.5 150LB A CALCULAR", "AC" },
-                { "VALVULA BORBOLETA AC A216 GR WCB API 609B ENGR LUG AISI 316 150LB", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 STD x Sch 10", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 10 x Sch 10", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 10 x Sch 20", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC S/C B16.9 XS", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.5 300LB XS", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC S/C B16.9 Sch 30", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC S/C B16.9 XS", "AC" },
-                { "TAMPAO ST AC A420 GR WPL6 PC B16.9 S/C A CALCULAR", "AC" },
-                { "TE RETO ST AC A420 GR WPL6 PC S/C B16.9 Sch 30", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC C/C B16.9 Sch 10", "AC" },
-                { "FLANGE CEGO AC A105-N NORMAL. FR B16.5 150LB", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 20 x Sch 30", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC C/C B16.9 Sch 20", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 20 x Sch 20", "AC" },
-                { "REDUCAO EXCENTRICA AC A420 GR WPL6 S/C PC B16.9 Sch 40 x Sch 30", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 A CALCULAR x A CALCULAR", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 10 x Sch 20", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.5 150LB Sch 10", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB S/C PC B16.9 STD x Sch 40", "AC" },
-                { "TE DE REDUCAO ST AC A234 GR WPB C/C PC B16.9 Sch 40 x XS", "AC" },
-                { "FLANGE CEGO AC A105-N NORMAL. FR B16.47 A 150LB", "AC" },
-                { "FLANGE DE PESCOCO AC A105-N NORMAL. FR PC B16.47 A 150LB A CALCULAR", "AC" },
-                { "TAMPAO ST AC A234 GR WPB PC B16.9 S/C STD", "AC" },
-                { "TAMPAO ST AC A234 GR WPB PC B16.9 S/C 0.562\"", "AC" },
-                { "CURVA 45 AC A234 GR WPB PC C/C B16.9 XS", "AC" },
-                { "TE DE REDUCAO ST AC A234 GR WPB C/C PC B16.9 Sch 20 x Sch 30", "AC" },
-                { "REDUCAO EXCENTRICA AI A403 GR WP304 S/C PC B16.9 Sch 80S x Sch 40S", "AI" },
-                { "TE RETO ST AI A403 GR WP304 PC S/C B16.9 Sch 80S", "AI" },
-                { "CURVA 90 AI A403 GR WP304 PC S/C B16.9 Sch 80S", "AI" },
-                { "FLANGE DE PESCOCO AC A105-N NORMAL. FR PC B16.5 150LB Sch 20", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 20 x Sch 40", "AC" },
-                { "FLANGE CEGO AC A105-N NORMAL. FR B16.5 300LB", "AC" },
-                { "VALVULA DE RETENCAO AC A352 GR LCB PORTINHOLA NORMAL FLG FR BS 1868 300LB", "AL" },
-                { "TAMPAO ST AC A234 GR WPB PC B16.9 S/C Sch 10", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC C/C B16.9 STD", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 40 x Sch 30", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 40 x STD", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC S/C B16.9 STD", "AC" },
-                { "CURVA 45 AC A234 GR WPB PC C/C B16.9 Sch 10", "AC" },
-                { "VALVULA GAVETA AC A216 GR WCB FLG FR ISO 10434 VOL. 300LB", "AC" },
-                { "CURVA 45 AC A234 GR WPB PC S/C B16.9 Sch 10", "AC" },
-                { "FLANGE CEGO AC A105 FR B16.47 A 150LB", "AC" },
-                { "FLANGE DE PESCOCO AI A182 GR F304 FR PC B16.5 150LB Sch 40S", "AI" },
-                { "VALVULA GLOBO AC A216 GR WCB BS 1873 FLG FR VOL. 150LB", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC S/C B16.9 Sch 20", "AC" },
-                { "CURVA 45 AC A234 GR WPB PC S/C B16.9 Sch 20", "AC" },
-                { "VALVULA GAVETA AC A216 GR WCB PC ISO 10434 ENGR 600LB Sch 60", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.5 600LB Sch 60", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC S/C B16.9 Sch 60", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 20 x Sch 20", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 20 x Sch 20", "AC" },
-                { "VALVULA GAVETA AC A216 GR WCB FLG FP ISO 10434 VOL. 150LB", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.5 300LB Sch 160", "AC" },
-                { "FLANGE CEGO AC A105 FR B16.5 300LB", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 10 x Sch 40", "AC" },
-                { "VALVULA ESFERA AC A216 GR WCB 2 VIAS FLG FR ISO 17292 RESILIENTE ENGR 150LB", "AC" },
-                { "CURVA 45 AC A234 GR WPB PC C/C B16.9 Sch 30", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC C/C B16.9 Sch 30", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC S/C B16.9 Sch 10", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC S/C B16.9 Sch 10", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 10 x Sch 20", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 60 x Sch 80", "AC" },
-                { "CURVA 45 AC A234 GR WPB PC C/C B16.9 Sch 60", "AC" },
-                { "CURVA 45 AC A234 GR WPB PC S/C B16.9 Sch 80", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 80 x Sch 80", "AC" },
-                { "VALVULA GLOBO AC A216 GR WCB BS 1873 PC VOL. 600LB Sch 80", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC S/C B16.9 Sch 80", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 60 x Sch 80", "AC" },
-                { "VALVULA ESFERA AC A216 GR WCB 2 VIAS FLG FR ISO 17292 RESILIENTE ALAV. 150LB", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 20 x Sch 40", "AC" },
-                { "FLANGE DE PESCOCO AC A105-N NORMAL. FR PC B16.5 150LB Sch 80", "AC" },
-                { "COTOVELO 90 AC A105-N NORMAL. ES B16.11 3000LB", "AC" },
-                { "TE DE REDUCAO ST AC A234 GR WPB C/C PC B16.9 Sch 10 x Sch 20", "AC" },
-                { "TAMPAO ST AC A234 GR WPB PC B16.9 S/C A CALCULAR", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 40 x Sch 80", "AC" },
-                { "FLANGE DE PESCOCO AC A105-N NORMAL. FR PC B16.5 300LB Sch 80", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 40 x Sch 80", "AC" },
-                { "MEIA-LUVA AC A350 LF2 CL 1 ES B16.11 3000LB", "AL" },
-                { "MEIA-LUVA AC A105 ES B16.11 3000LB", "AC" },
-                { "VALVULA GAVETA AC A105 ES API 602 VOL. 800LB", "AC" },
-                { "FLANGE ENCAIXE AC A105 FR ES B16.5 150LB Sch 80", "AC" },
-                { "TE RETO AC A105-N NORMAL. ES B16.11 3000LB", "AC" },
-                { "VALVULA GAVETA AC A105-N NORMAL. ES API 602 VOL. 800LB", "AC" },
-                { "FLANGE ENCAIXE AC A105-N NORMAL. FR ES B16.5 150LB Sch 80", "AC" },
-                { "TAMPAO ES AC A105-N NORMAL. ES B16.11 3000LB", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC S/C B16.9 Sch 160", "AC" },
-                { "NIPLE DE REDUCAO CONCENTRICO AC A234 GR WPB PC X PL S/C MSS SP-95 Sch 80 x Sch 80", "AC" },
-                { "TE RETO AC A105 ES B16.11 3000LB", "AC" },
-                { "VALVULA GLOBO AC A105-N NORMAL. ISO 15761 ES VOL. 800LB", "AC" },
-                { "FLANGE DE PESCOCO AC A105-N NORMAL. FR PC B16.5 600LB Sch 80", "AC" },
-                { "VALVULA GAVETA AC A216 GR WCB FLG FR ISO 10434 VOL. 600LB", "AC" },
-                { "FLANGE CEGO AC A105-N NORMAL. FR B16.5 600LB", "AC" },
-                { "COLAR DE TOPO AC A105-N NORMAL. MSS SP-97 Sch 40 x Sch 80", "AC" },
-                { "LUVA AC A105-N NORMAL. ES B16.11 3000LB", "AC" },
-                { "VALVULA ESFERA AC A105-N NORMAL. 2 VIAS ES C/ NIPLE ISO 17292 RESILIENTE ALAV. 800LB", "AC" },
-                { "COLAR DE ENCAIXE AC A105 MSS SP-97 3000LB", "AC" },
-                { "TAMPAO ST AC A234 GR WPB PC B16.9 S/C Sch 160", "AC" },
-                { "FLANGE SOBREPOSTO AC A105-N NORMAL. FR B16.5 150LB", "AC" },
-                { "TAMPAO ST AC A234 GR WPB PC B16.9 S/C Sch 80", "AC" },
-                { "TAMPAO ST AC A234 GR WPB PC B16.9 S/C Sch 20", "AC" },
-                { "TUBO METÁLICO; AL; A335 GR P11; S/C; PC; B36.10", "AL" },
-                { "FLANGE DE PESCOCO AL A182 GR F11 CL 2 FR PC B16.5 300LB Sch 40S", "AI" },
-                { "CURVA 90 AL A234 GR WP11 PC S/C B16.9 Sch 40S", "AC" },
-                { "COLAR DE TOPO AL A182 GR F11 CL 2 MSS SP-97 Sch 40S x Sch 40S", "AI" },
-                { "REDUCAO EXCENTRICA AL A234 GR WP11 S/C PC B16.9 Sch 40S x Sch 40S", "AC" },
-                { "VALVULA GLOBO AL A217 GR WC6 ISO 15761 FLG FR VOL. 300LB", "AL" },
-                { "CURVA 45 AL A234 GR WP11 PC S/C B16.9 Sch 40S", "AC" },
-                { "MEIA-LUVA AC A105-N NORMAL. ES B16.11 3000LB", "AC" },
-                { "FLANGE DE PESCOCO AL A182 GR F22 FR PC B16.5 300LB Sch 40S", "AI" },
-                { "FLANGE CEGO AL A182 GR F22 FR B16.5 300LB", "AI" },
-                { "TAMPAO ST AL A234 GR WP22 PC B16.9 S/C Sch 40S", "AC" },
-                { "TUBO METÁLICO; AL; A335 GR P22; S/C; PC; B36.10", "AL" },
-                { "VALVULA GAVETA AL A217 GR WC9 FLG FR ISO 10434 VOL. 300LB", "AL" },
-                { "MEIA-LUVA AL A182 GR F22 ES B16.11 3000LB", "AI" },
-                { "FLANGE DE PESCOCO AL A182 GR F11 CL 2 FR PC B16.5 300LB A CALCULAR", "AI" },
-                { "REDUCAO EXCENTRICA AL A234 GR WP11 S/C PC B16.9 A CALCULAR x A CALCULAR", "AC" },
-                { "CURVA 90 AL A234 GR WP11 PC S/C B16.9 A CALCULAR", "AC" },
-                { "TAMPAO ST AL A234 GR WP11 PC B16.9 S/C A CALCULAR", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC C/C B16.9 A CALCULAR", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.5 1500LB Sch 140", "AC" },
-                { "VALVULA DE RETENCAO AL A182 GR F22 CL 3 PORTINHOLA NORMAL PC BS 1868 2500LB 1.375\"", "AI" },
-                { "TE RETO ST AL A234 GR WP22 PC S/C B16.9 1.375\"", "AC" },
-                { "TE RETO ST AL A234 GR WP11 PC S/C B16.9 Sch 40S", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.47 A 150LB A CALCULAR", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB C/C PC B16.9 A CALCULAR x Sch 40", "AC" },
-                { "FLANGE SOBREPOSTO AC A105 FR B16.5 150LB", "AC" },
-                { "FLANGE DE PESCOCO AL A182 GR F22 FR PC B16.5 2500LB 1.375\"", "AI" },
-                { "TE RETO ST AL A234 GR WP22 PC S/C B16.9 1.938\"", "AC" },
-                { "FLANGE DE PESCOCO AL A182 GR F22 FR PC B16.5 2500LB 1.938\"", "AI" },
-                { "FLANGE CEGO AL A182 GR F22 FR B16.5 2500LB", "AI" },
-                { "TE DE REDUCAO ST AC A234 GR WPB C/C PC B16.9 Sch 60 x Sch 80", "AC" },
-                { "REDUCAO EXCENTRICA AL A234 GR WP22 S/C PC B16.9 1.938\" x 1.375\"", "AC" },
-                { "TE DE REDUCAO ST AC A234 GR WPB C/C PC B16.9 Sch 10 x Sch 10", "AC" },
-                { "TE DE REDUCAO ST AC A234 GR WPB S/C PC B16.9 STD x Sch 40", "AC" },
-                { "TE RETO ST AC A234 GR WPB PC S/C B16.9 Sch 140", "AC" },
-                { "TAMPAO RO AC A105 RO B16.11 3000LB", "AC" },
-                { "LUVA DE REDUCAO AC A105 RO B16.11 3000LB", "AC" },
-                { "LUVA AC A105 RO B16.11 3000LB", "AC" },
-                { "FLANGE ROSCADO AC A105 FP RO B16.5 150LB", "AC" },
-                { "TE DE REDUCAO ST AC A234 GR WPB S/C PC B16.9 Sch 40 x Sch 40", "AC" },
-                { "TUBO METÁLICO; AI; A312 GR TP304; S/C; PL; B36.19", "AI" },
-                { "COTOVELO 90 AC A105 RO B16.11 3000LB", "AC" },
-                { "VALVULA GAVETA BRONZE B62 RO MSS SP-80 VOL. 200LB", "BR" },
-                { "TE RETO AC A105 RO B16.11 3000LB", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 10 x Sch 20", "AC" },
-                { "VALVULA GLOBO AC A105 ISO 15761 ES VOL. 800LB", "AC" },
-                { "LUVA DE REDUCAO AC A105 ES B16.11 3000LB", "AC" },
-                { "LUVA AC A105 ES B16.11 3000LB", "AC" },
-                { "FLANGE ENCAIXE AC A105 FR ES B16.5 300LB Sch 160", "AC" },
-                { "COTOVELO 90 AC A105 ES B16.11 6000LB", "AC" },
-                { "FLANGE DE PESCOCO AC A105 FR PC B16.5 150LB STD", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 140 x Sch 140", "AC" },
-                { "VALVULA GAVETA AC A216 GR WCB PC ISO 10434 ENGR 1500LB Sch 140", "AC" },
-                { "REDUCAO EXCENTRICA AC A234 GR WPB C/C PC B16.9 Sch 60 x Sch 60", "AC" },
-                { "FLANGE CEGO AC A105 FR B16.5 600LB", "AC" },
-                { "VALVULA GAVETA AI A351 GR CF8 FLG FR ISO 10434 VOL. 150LB", "AI" },
-                { "FLANGE CEGO AC A105 FP GALV B16.5 150LB", "AC" },
-                { "LUVA AC A105 ES B16.11 6000LB", "AC" },
-                { "VALVULA ESFERA AC A105 2 VIAS ES C/ NIPLE ISO 17292 RESILIENTE ALAV. 800LB", "AC" },
-                { "FLANGE ENCAIXE AC A105 FR ES B16.5 150LB Sch 160", "AC" },
-                { "REDUCAO CONCENTRICA AC A234 GR WPB S/C PC B16.9 Sch 160 x Sch 160", "AC" },
-                { "CURVA 90 AC A234 GR WPB PC S/C B16.9 Sch 160", "AC" },
-                { "TE DE REDUCAO ST AC A234 GR WPB S/C PC B16.9 Sch 40 x Sch 80", "AC" },
-                { "CURVA 90 AI A403 GR WP304 PC C/C B16.9 Sch 10S", "AI" },
-                { "FLANGE DE PESCOCO AI A182 GR F304 FR PC B16.5 150LB Sch 10S", "AI" },
-            };
-
         private static readonly Dictionary<string, string> Fluxogramas =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -2076,6 +1769,7 @@ namespace PROP
                 { "1-WO-42102", "TRE-736-04200-DI-21-4003" },
                 { "1-WW-41002", "TRE-736-04100-DI-21-4009" }
             };
+
         private static bool exportando;
         private static JanelaProgresso progresso;
         private const int LinhasPorBloco = 4096;
@@ -2497,6 +2191,9 @@ namespace PROP
                     try { PreencherAba(aba, planilhas, Path.GetFileNameWithoutExtension(caminho)); }
                     finally { Liberar(aba); }
                     PreencherAbaModelo(template, planilhas);
+                    Excel.Worksheet quantitativo = (Excel.Worksheet)abas.Add(Type.Missing, template, Type.Missing, Type.Missing);
+                    try { PreencherQuantitativo(quantitativo, planilhas); }
+                    finally { Liberar(quantitativo); }
                     template.Activate();
                     Excel.Window janelaExcel = excel.ActiveWindow;
                     try
@@ -2509,20 +2206,6 @@ namespace PROP
                 }
                 finally { Liberar(template); }
 
-                for (int i = 1; i <= abas.Count; i++)
-                {
-                    Excel.Worksheet aba = (Excel.Worksheet)abas[i];
-                    Excel.Range colunas = null, linhas = null;
-                    try
-                    {
-                        aba.Visible = Excel.XlSheetVisibility.xlSheetVisible;
-                        colunas = aba.Columns;
-                        linhas = aba.Rows;
-                        colunas.Hidden = false;
-                        linhas.Hidden = false;
-                    }
-                    finally { Liberar(linhas); Liberar(colunas); Liberar(aba); }
-                }
                 progresso.Registrar("Calculando subtotais...");
                 excel.Calculation = Excel.XlCalculation.xlCalculationAutomatic;
                 progresso.Registrar("Salvando " + caminho + "...");
@@ -2544,6 +2227,82 @@ namespace PROP
                 Liberar(excel);
                 try { File.Delete(caminhoModelo); } catch (IOException) { }
             }
+        }
+
+        private static List<object[]> ColetarQuantitativo(List<PlanilhaDados> planilhas)
+        {
+            var indice = new Dictionary<Tuple<int, string, string, string, string, string, string>, object[]>();
+            var resultado = new List<object[]>();
+            string[] niveis = { "GERAL", "RVM", "SITE", "ZONE", "PIPE", "BRANCH" };
+            foreach (PlanilhaDados planilha in planilhas)
+                foreach (LinhaDados linha in planilha.Linhas)
+                {
+                    string tipo = linha.Cylinder ? "PIPE" : (linha.Propriedades[0] ?? "").Trim().ToUpperInvariant();
+                    if (tipo.Length == 0) tipo = "SEM TIPO";
+                    for (int nivel = 0; nivel < niveis.Length; nivel++)
+                    {
+                        var chave = Tuple.Create(nivel, nivel >= 1 ? linha.Rvm : "", nivel >= 2 ? linha.Site : "",
+                            nivel >= 3 ? linha.Tabela : "", nivel >= 4 ? linha.Classe : "",
+                            nivel >= 5 ? linha.Subclasse : "", tipo);
+                        if (!indice.TryGetValue(chave, out object[] total))
+                        {
+                            if (resultado.Count >= 1048573)
+                                throw new InvalidOperationException("O quantitativo excede o limite de linhas do Excel.");
+                            total = new object[] { niveis[nivel], chave.Item2, chave.Item3, chave.Item4,
+                                chave.Item5, chave.Item6, tipo, 0 };
+                            indice.Add(chave, total);
+                            resultado.Add(total);
+                        }
+                        total[7] = (int)total[7] + 1;
+                    }
+                }
+            return resultado;
+        }
+
+        private static void PreencherQuantitativo(Excel.Worksheet aba, List<PlanilhaDados> planilhas)
+        {
+            progresso.Registrar("Agrupando quantitativo por hierarquia e tipo...");
+            List<object[]> linhas = ColetarQuantitativo(planilhas);
+            aba.Name = "Quantitativo";
+            Excel.Range aviso = aba.Range["A1", "H1"];
+            try
+            {
+                aviso.Merge();
+                aviso.Value2 = "Contagem de elementos por tipo. Filtre um único Nível para não somar os mesmos elementos novamente.";
+                aviso.WrapText = true;
+                aviso.RowHeight = 32;
+            }
+            finally { Liberar(aviso); }
+            Excel.Range cabecalho = aba.Range["A3", "H3"];
+            try { cabecalho.Value2 = new object[,] { { "Nível", "RVM", "SITE", "ZONE", "PIPE", "BRANCH", "Tipo", "Quantidade" } }; }
+            finally { Liberar(cabecalho); }
+            for (int inicio = 0; inicio < linhas.Count; inicio += LinhasPorBloco)
+            {
+                int quantidade = Math.Min(LinhasPorBloco, linhas.Count - inicio);
+                var valores = new object[quantidade, 8];
+                for (int i = 0; i < quantidade; i++)
+                    for (int coluna = 0; coluna < 8; coluna++) valores[i, coluna] = linhas[inicio + i][coluna];
+                Excel.Range texto = aba.Range["A" + (inicio + 4), "G" + (inicio + quantidade + 3)];
+                Excel.Range bloco = aba.Range["A" + (inicio + 4), "H" + (inicio + quantidade + 3)];
+                try { texto.NumberFormat = "@"; bloco.Value2 = valores; }
+                finally { Liberar(bloco); Liberar(texto); }
+                progresso.Registrar("Quantitativo: " + (inicio + quantidade) + "/" + linhas.Count + " linhas gravadas.");
+            }
+            Excel.Range faixa = aba.Range["A3", "H" + Math.Max(4, linhas.Count + 3)];
+            Excel.ListObjects tabelas = aba.ListObjects;
+            Excel.ListObject tabela = null;
+            Excel.Range colunas = aba.Range["A:H"];
+            Excel.Range quantidades = aba.Range["H4", "H" + Math.Max(4, linhas.Count + 3)];
+            try
+            {
+                tabela = tabelas.Add(Excel.XlListObjectSourceType.xlSrcRange, faixa, Type.Missing, Excel.XlYesNoGuess.xlYes);
+                tabela.Name = "QuantitativoPorTipo";
+                tabela.TableStyle = "TableStyleMedium2";
+                colunas.ColumnWidth = 24;
+                quantidades.NumberFormat = "0";
+                faixa.AutoFilter(1, "PIPE");
+            }
+            finally { Liberar(quantidades); Liberar(colunas); Liberar(tabela); Liberar(tabelas); Liberar(faixa); }
         }
 
         private static void PreencherAba(Excel.Worksheet aba, List<PlanilhaDados> planilhas, string tituloAba)
@@ -2749,8 +2508,6 @@ namespace PROP
                             valores[i, 6] = material.Material;
                             valores[i, 15] = material.Schedule;
                         }
-                        if (CatalogoMateriais.TentarObterMaterial(valores[i, 5] as string, out string materialDescricao))
-                            valores[i, 6] = materialDescricao;
                         valores[i, 18] = linha.MtoTotal.HasValue ? (double)linha.MtoTotal.Value : ObterMto(linha);
                         valores[i, 20] = ObterFluxograma(numeroLinha);
                         if (linha.Cylinder)
